@@ -17,7 +17,7 @@ contract MysteryBox {
     constructor() payable {
         owner = msg.sender;
         boxPrice = 0.1 ether;
-        require(msg.value >= SEEDVALUE, "Incorrect ETH sent");
+        //require(msg.value >= SEEDVALUE, "Incorrect ETH sent");
         // Initialize with some default rewards
         rewardPool.push(Reward("Gold Coin", 0.5 ether));
         rewardPool.push(Reward("Silver Coin", 0.25 ether));
@@ -83,6 +83,9 @@ contract MysteryBox {
         }
         require(totalValue > 0, "No rewards to claim");
 
+        /*if(totalValue > address(this).balance){
+            totalValue = address(this).balance;
+        }*/
         (bool success,) = payable(msg.sender).call{value: totalValue}("");
         require(success, "Transfer failed");
 
@@ -94,6 +97,9 @@ contract MysteryBox {
         uint256 value = rewardsOwned[msg.sender][_index].value;
         require(value > 0, "No reward to claim");
 
+        /*if(value > address(this).balance){
+            value = address(this).balance;
+        }*/
         (bool success,) = payable(msg.sender).call{value: value}("");
         require(success, "Transfer failed");
 
